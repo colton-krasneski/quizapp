@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizApp | Home</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="shapes" aria-hidden="true">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <main class="card">
+    <div class="brand">
+      <h1>Quiz<span>App</span></h1>
+      <p>Welcome back, <strong id="name">player</strong>!</p>
+    </div>
+
+    <a class="btn btn-green btn-link" href="join.html">Join a Game</a>
+    <div style="height:12px"></div>
+    <a class="btn btn-link" href="host.html">Host a Game</a>
+
+    <div class="divider">or</div>
+
+    <button class="btn btn-ghost" id="logout">Log Out</button>
+
+    <p class="note">
+      Host a lobby and anyone can join with the code, from any
+      device.<br>Quizzes themselves are coming next.
+    </p>
+  </main>
+
+  <script type="module">
+    import { currentUser, logOut } from "./js/auth.js";
+
+    const user = currentUser();
+    if (!user) location.replace("index.html");
+    else document.getElementById("name").textContent = user.displayName;
+
+    document.getElementById("logout").addEventListener("click", () => {
+      logOut();
+      location.href = "index.html";
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizApp | Host a Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="shapes" aria-hidden="true">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <main class="card card-wide">
+
+    <div class="brand">
+      <h1>Quiz<span>App</span></h1>
+      <p>Hosting a lobby</p>
+    </div>
+
+    <p class="msg msg-error" id="message" role="alert" hidden></p>
+
+    <!-- Opening the room -->
+    <section id="stage-opening">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="status">Opening your lobby&hellip;</p>
+    </section>
+
+    <!-- Room is live -->
+    <section id="stage-live" hidden>
+
+      <div class="code-panel">
+        <p class="code-label">Join at <strong id="join-url">quizapp.krasneski.com</strong> with code</p>
+        <p class="code" id="code" aria-live="polite">—</p>
+        <div class="code-actions">
+          <button class="chip-btn" id="copy-link" type="button">Copy join link</button>
+          <button class="chip-btn" id="copy-code" type="button">Copy code</button>
+        </div>
+      </div>
+
+      <div class="roster-head">
+        <h2 id="player-count">Waiting for players&hellip;</h2>
+        <span class="pill" id="lock-pill" hidden>Locked</span>
+      </div>
+
+      <ul class="roster" id="roster" aria-live="polite">
+        <li class="roster-empty" id="roster-empty">
+          Nobody yet. Share the code above and players will appear here.
+        </li>
+      </ul>
+
+      <button class="btn btn-green" id="start" disabled>Start Game</button>
+      <p class="note" id="start-note">Quizzes aren't built yet — this lobby is for testing that players can join from anywhere.</p>
+
+      <div class="divider">or</div>
+
+      <button class="btn btn-ghost" id="end">End Lobby</button>
+    </section>
+
+    <!-- Couldn't open -->
+    <section id="stage-failed" hidden>
+      <button class="btn" id="retry">Try Again</button>
+      <div style="height:12px"></div>
+      <a class="btn btn-ghost btn-link" href="home.html">Back to Home</a>
+    </section>
+
+  </main>
+
+  <script type="module">
+    import { currentUser } from "./js/auth.js";
+    import { hostRoom, MAX_PLAYERS } from "./js/realtime.js";
+
+    const user = currentUser();
+    if (!user) location.replace("index.html");
+
+    const message = document.getElementById("message");
+    const stages = {
+      opening: document.getElementById("stage-opening"),
+      live: document.getElementById("stage-live"),
+      failed: document.getElementById("stage-failed"),
+    };
+
+    const codeEl = document.getElementById("code");
+    const joinUrlEl = document.getElementById("join-url");
+    const rosterEl = document.getElementById("roster");
+    const rosterEmpty = document.getElementById("roster-empty");
+    const countEl = document.getElementById("player-count");
+    const lockPill = document.getElementById("lock-pill");
+    const startButton = document.getElementById("start");
+
+    let room = null;
+
+    /* --- plumbing --- */
+
+    function showStage(name) {
+      for (const [key, element] of Object.entries(stages)) {
+        element.hidden = key !== name;
+      }
+    }
+
+    function showMessage(text, kind = "error") {
+      message.textContent = text;
+      message.className = "msg msg-" + kind;
+      message.hidden = false;
+    }
+
+    function clearMessage() {
+      message.hidden = true;
+    }
+
+    // The join page lives next to this one, so build its link
+    // from the current URL rather than hard-coding the domain.
+    function joinLink(code) {
+      const url = new URL("join.html", location.href);
+      url.searchParams.set("code", code);
+      return url.href;
+    }
+
+    function prettyHost() {
+      return location.host || "this site";
+    }
+
+    async function copyToClipboard(text, button, doneLabel) {
+      const original = button.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = doneLabel;
+      } catch {
+        // Clipboard access is blocked on plain http:// and in some
+        // browsers, so fall back to showing what to copy.
+        button.textContent = "Copy failed";
+        showMessage("Couldn't copy automatically. The code is " + room.code + ".", "ok");
+      }
+      setTimeout(() => (button.textContent = original), 1600);
+    }
+
+    /* --- lobby rendering --- */
+
+    function renderPlayers(players) {
+      rosterEmpty.hidden = players.length > 0;
+
+      // Remove previously rendered rows, keeping the empty notice.
+      for (const row of [...rosterEl.querySelectorAll(".player")]) {
+        row.remove();
+      }
+
+      for (const player of players) {
+        const row = document.createElement("li");
+        row.className = "player";
+
+        const name = document.createElement("span");
+        name.className = "player-name";
+        name.textContent = player.name; // textContent, so names can't inject markup
+        row.appendChild(name);
+
+        const kick = document.createElement("button");
+        kick.type = "button";
+        kick.className = "kick-btn";
+        kick.textContent = "Remove";
+        kick.setAttribute("aria-label", "Remove " + player.name);
+        kick.addEventListener("click", () => room?.kick(player.id));
+        row.appendChild(kick);
+
+        rosterEl.appendChild(row);
+      }
+
+      const count = players.length;
+      countEl.textContent =
+        count === 0
+          ? "Waiting for players…"
+          : `${count} player${count === 1 ? "" : "s"} joined` +
+            (count >= MAX_PLAYERS ? " (full)" : "");
+
+      startButton.disabled = true; // no quizzes to start yet
+    }
+
+    /* --- opening the room --- */
+
+    async function openLobby() {
+      clearMessage();
+      showStage("opening");
+
+      try {
+        room = await hostRoom({
+          onPlayersChange: renderPlayers,
+          onError: (text) => showMessage(text),
+          onConnectionLost: () =>
+            showMessage(
+              "Reconnecting… players already in the lobby are unaffected, but new ones can't join right now."
+            ),
+          onReconnected: clearMessage,
+        });
+      } catch (error) {
+        showMessage(error.message);
+        showStage("failed");
+        return;
+      }
+
+      codeEl.textContent = room.code;
+      joinUrlEl.textContent = prettyHost();
+      document.title = `QuizApp | Code ${room.code}`;
+      renderPlayers([]);
+      showStage("live");
+    }
+
+    /* --- controls --- */
+
+    document.getElementById("copy-code").addEventListener("click", (event) => {
+      copyToClipboard(room.code, event.currentTarget, "Copied!");
+    });
+
+    document.getElementById("copy-link").addEventListener("click", (event) => {
+      copyToClipboard(joinLink(room.code), event.currentTarget, "Copied!");
+    });
+
+    document.getElementById("end").addEventListener("click", () => {
+      room?.close();
+      location.href = "home.html";
+    });
+
+    document.getElementById("retry").addEventListener("click", openLobby);
+
+    // Closing the tab takes the lobby with it, so tell players
+    // on the way out instead of leaving them hanging.
+    window.addEventListener("pagehide", () => room?.close());
+
+    openLobby();
+  </script>
+
+</body>
+</html>

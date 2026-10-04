@@ -1,0 +1,536 @@
+/* ============================================
+   QuizApp — shared styles
+   ============================================ */
+
+:root {
+  --bg-top: #4b4ee7;
+  --bg-bottom: #7c3aed;
+  --card: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #4b4ee7;
+  --accent-dark: #3a3dc4;
+  --green: #22c55e;
+  --green-dark: #16a34a;
+  --red: #ef4444;
+  --yellow: #fbbf24;
+  --pink: #ec4899;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--text);
+  background: linear-gradient(160deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-x: hidden;
+}
+
+/* --- Floating background shapes --- */
+
+.shapes {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.shape {
+  position: absolute;
+  border-radius: 26%;
+  opacity: 0.16;
+  animation: drift 18s ease-in-out infinite;
+}
+
+.shape:nth-child(1) { width: 140px; height: 140px; background: var(--yellow); top: 8%;  left: 6%;  animation-delay: 0s; }
+.shape:nth-child(2) { width: 90px;  height: 90px;  background: var(--pink);   top: 62%; left: 12%; animation-delay: -4s; }
+.shape:nth-child(3) { width: 170px; height: 170px; background: #38bdf8;       top: 14%; right: 8%; animation-delay: -8s; }
+.shape:nth-child(4) { width: 110px; height: 110px; background: var(--green);  bottom: 10%; right: 14%; animation-delay: -12s; }
+
+@keyframes drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-28px) rotate(18deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shape { animation: none; }
+}
+
+/* --- Card --- */
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: var(--card);
+  border-radius: 24px;
+  padding: 36px 32px 32px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+
+.brand h1 span {
+  color: var(--pink);
+}
+
+.brand p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* --- Tabs --- */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 5px;
+  margin-bottom: 22px;
+}
+
+.tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 800;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab[aria-selected="true"] {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Form --- */
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.field input {
+  width: 100%;
+  padding: 13px 14px;
+  font: inherit;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #fafafa;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--card);
+}
+
+/* --- Buttons (chunky, with press-down shadow) --- */
+
+.btn {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 14px 0;
+  font: inherit;
+  font-weight: 900;
+  font-size: 1.05rem;
+  color: #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--accent);
+  box-shadow: 0 4px 0 var(--accent-dark);
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+
+.btn:hover:not(:disabled) { filter: brightness(1.07); }
+
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--accent-dark);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-green {
+  background: var(--green);
+  box-shadow: 0 4px 0 var(--green-dark);
+}
+
+.btn-green:active:not(:disabled) { box-shadow: 0 0 0 var(--green-dark); }
+
+.btn-ghost {
+  background: #f3f4f6;
+  color: var(--text);
+  box-shadow: 0 4px 0 #d1d5db;
+}
+
+.btn-ghost:active:not(:disabled) { box-shadow: 0 0 0 #d1d5db; }
+
+/* --- Divider --- */
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+
+/* --- Messages --- */
+
+.msg {
+  margin: 0 0 16px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.msg[hidden] { display: none; }
+
+.msg-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.msg-ok {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.note {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ============================================
+   Lobby — host and join screens
+   ============================================ */
+
+/* The host's roster can get long, so that card gets more room. */
+.card-wide {
+  max-width: 520px;
+}
+
+/* Anchors styled as buttons need the text centred and the
+   underline removed, since <a> doesn't inherit either. */
+.btn-link {
+  text-decoration: none;
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* --- Game code panel --- */
+
+.code-panel {
+  background: linear-gradient(160deg, var(--accent) 0%, var(--bg-bottom) 100%);
+  border-radius: var(--radius);
+  padding: 20px 18px 18px;
+  text-align: center;
+  color: #fff;
+  margin-bottom: 22px;
+}
+
+.code-label {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+}
+
+.code-label strong {
+  font-weight: 900;
+  opacity: 1;
+}
+
+.code {
+  margin: 8px 0 14px;
+  font-size: clamp(2.6rem, 14vw, 3.6rem);
+  font-weight: 900;
+  /* Wide tracking so a code read off a projector can't be
+     misheard as two letters run together. */
+  letter-spacing: 0.14em;
+  line-height: 1;
+  /* Lets players double-tap the code to select just the code. */
+  user-select: all;
+}
+
+.code-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chip-btn {
+  border: 0;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 0.15s;
+}
+
+.chip-btn:hover {
+  background: rgba(255, 255, 255, 0.34);
+}
+
+/* --- Code entry --- */
+
+.code-input {
+  text-align: center;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.code-input::placeholder {
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  color: #d1d5db;
+}
+
+/* --- "You're in" panel --- */
+
+.joined-panel {
+  background: #f0fdf4;
+  border: 2px solid #bbf7d0;
+  border-radius: var(--radius);
+  padding: 18px;
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.joined-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--green-dark);
+}
+
+.joined-name {
+  margin: 4px 0 2px;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--text);
+  /* A long nickname shouldn't push the panel wider than the card. */
+  overflow-wrap: anywhere;
+}
+
+.joined-sub {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+/* --- Roster --- */
+
+.roster-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.roster-head h2,
+.roster-head-simple {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.roster-head h2 {
+  margin-bottom: 0;
+}
+
+.roster {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Keeps a full 40-player lobby from running off the screen. */
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #f9fafb;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  animation: pop-in 0.22s ease-out;
+}
+
+.player-me {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.player-name {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.roster-empty {
+  text-align: center;
+  padding: 22px 14px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.roster-empty[hidden] {
+  display: none;
+}
+
+.kick-btn {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.kick-btn:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.pill {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.pill[hidden] {
+  display: none;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Waiting states --- */
+
+.spinner {
+  width: 38px;
+  height: 38px;
+  margin: 6px auto 16px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.status {
+  margin: 0 0 20px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2.4s; }
+  .player { animation: none; }
+}

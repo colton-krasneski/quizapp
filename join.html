@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuizApp | Join a Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="shapes" aria-hidden="true">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <main class="card">
+
+    <div class="brand">
+      <h1>Quiz<span>App</span></h1>
+      <p id="subtitle">Enter the code from your host's screen</p>
+    </div>
+
+    <p class="msg msg-error" id="message" role="alert" hidden></p>
+
+    <!-- Enter a code -->
+    <section id="stage-form">
+      <form id="form-join">
+        <div class="field">
+          <label for="code">Game Code</label>
+          <input type="text" id="code" name="code" class="code-input"
+                 inputmode="latin" autocomplete="off" autocapitalize="characters"
+                 spellcheck="false" maxlength="5" placeholder="ABC12" required>
+        </div>
+        <div class="field">
+          <label for="nickname">Nickname</label>
+          <input type="text" id="nickname" name="nickname"
+                 autocomplete="nickname"
+                 placeholder="What should we call you?" required>
+        </div>
+        <button type="submit" class="btn btn-green" id="join">Join Game</button>
+      </form>
+
+      <div class="divider">or</div>
+
+      <a class="btn btn-ghost btn-link" href="home.html">Back to Home</a>
+    </section>
+
+    <!-- Connecting -->
+    <section id="stage-connecting" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="status">Finding the game&hellip;</p>
+      <button class="btn btn-ghost" id="cancel">Cancel</button>
+    </section>
+
+    <!-- In the lobby -->
+    <section id="stage-lobby" hidden>
+      <div class="joined-panel">
+        <p class="joined-label">You're in!</p>
+        <p class="joined-name" id="my-name">—</p>
+        <p class="joined-sub">Game <strong id="my-code">—</strong></p>
+      </div>
+
+      <h2 class="roster-head-simple" id="player-count">Players</h2>
+      <ul class="roster" id="roster" aria-live="polite"></ul>
+
+      <p class="note">Hang tight — the host will start the game.</p>
+
+      <div class="divider">or</div>
+
+      <button class="btn btn-ghost" id="leave">Leave Game</button>
+    </section>
+
+    <!-- Removed / game over -->
+    <section id="stage-over" hidden>
+      <p class="status" id="over-text">The game has ended.</p>
+      <button class="btn" id="rejoin">Join Another Game</button>
+      <div style="height:12px"></div>
+      <a class="btn btn-ghost btn-link" href="home.html">Back to Home</a>
+    </section>
+
+  </main>
+
+  <script type="module">
+    import { currentUser } from "./js/auth.js";
+    import {
+      joinRoom,
+      normalizeCode,
+      cleanName,
+      MAX_NAME_LENGTH,
+    } from "./js/realtime.js";
+
+    const user = currentUser();
+    if (!user) location.replace("index.html");
+
+    const message = document.getElementById("message");
+    const stages = {
+      form: document.getElementById("stage-form"),
+      connecting: document.getElementById("stage-connecting"),
+      lobby: document.getElementById("stage-lobby"),
+      over: document.getElementById("stage-over"),
+    };
+
+    const form = document.getElementById("form-join");
+    const codeInput = document.getElementById("code");
+    const nameInput = document.getElementById("nickname");
+    const joinButton = document.getElementById("join");
+    const rosterEl = document.getElementById("roster");
+    const countEl = document.getElementById("player-count");
+
+    let room = null;
+
+    /* Connecting can take a few seconds, and the player may hit
+       Cancel in the middle. Each attempt carries a number so a
+       late reply from an abandoned attempt gets dropped instead
+       of overwriting the screen. */
+    let attemptId = 0;
+
+    /* --- plumbing --- */
+
+    function showStage(name) {
+      for (const [key, element] of Object.entries(stages)) {
+        element.hidden = key !== name;
+      }
+    }
+
+    function showMessage(text, kind = "error") {
+      message.textContent = text;
+      message.className = "msg msg-" + kind;
+      message.hidden = false;
+    }
+
+    function clearMessage() {
+      message.hidden = true;
+    }
+
+    function backToForm(text) {
+      room = null;
+      showStage("form");
+      if (text) showMessage(text);
+      joinButton.disabled = false;
+    }
+
+    function endWith(text) {
+      room = null;
+      document.getElementById("over-text").textContent = text;
+      clearMessage();
+      showStage("over");
+    }
+
+    /* --- prefill --- */
+
+    // A host can share quizapp.krasneski.com/join.html?code=ABC12,
+    // which saves everyone typing it.
+    // Set here rather than in the markup so the field and the
+    // limit the host enforces can't drift apart.
+    nameInput.maxLength = MAX_NAME_LENGTH;
+
+    const sharedCode = normalizeCode(
+      new URLSearchParams(location.search).get("code")
+    );
+    if (sharedCode) codeInput.value = sharedCode;
+
+    // Signed-in players get their name suggested; guests still
+    // pick something, since "Guest 4821" is nobody's nickname.
+    if (user && !user.guest) nameInput.value = cleanName(user.displayName);
+
+    // Codes are always uppercase, so don't make anyone hold shift.
+    codeInput.addEventListener("input", () => {
+      const caretAtEnd = codeInput.selectionStart === codeInput.value.length;
+      codeInput.value = normalizeCode(codeInput.value);
+      if (caretAtEnd) {
+        codeInput.setSelectionRange(codeInput.value.length, codeInput.value.length);
+      }
+    });
+
+    (sharedCode ? nameInput : codeInput).focus();
+
+    /* --- lobby rendering --- */
+
+    function renderRoster(players) {
+      rosterEl.replaceChildren();
+
+      for (const player of players) {
+        const row = document.createElement("li");
+        row.className = "player";
+        if (player.id === room?.me.id) row.classList.add("player-me");
+
+        const name = document.createElement("span");
+        name.className = "player-name";
+        name.textContent = player.name;
+        row.appendChild(name);
+
+        if (player.id === room?.me.id) {
+          const you = document.createElement("span");
+          you.className = "pill";
+          you.textContent = "You";
+          row.appendChild(you);
+        }
+
+        rosterEl.appendChild(row);
+      }
+
+      const count = players.length;
+      countEl.textContent = `${count} player${count === 1 ? "" : "s"} in the lobby`;
+    }
+
+    /* --- joining --- */
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      clearMessage();
+
+      const code = normalizeCode(codeInput.value);
+      const name = cleanName(nameInput.value);
+
+      joinButton.disabled = true;
+      showStage("connecting");
+
+      const attempt = ++attemptId;
+      const live = () => attempt === attemptId;
+
+      try {
+        const joined = await joinRoom(code, name, {
+          onRosterChange: (players) => live() && renderRoster(players),
+          onKicked: () =>
+            live() && endWith("The host removed you from the game."),
+          onGameEnded: () => live() && endWith("The host ended the game."),
+          onError: (text) => live() && showMessage(text),
+        });
+
+        if (!live()) return joined.leave(); // cancelled while connecting
+        room = joined;
+      } catch (error) {
+        if (live()) backToForm(error.message);
+        return;
+      }
+
+      document.getElementById("my-name").textContent = room.me.name;
+      document.getElementById("my-code").textContent = room.code;
+      document.getElementById("subtitle").textContent = "In the lobby";
+      renderRoster([{ id: room.me.id, name: room.me.name }]);
+      showStage("lobby");
+      joinButton.disabled = false;
+    });
+
+    /* --- controls --- */
+
+    document.getElementById("cancel").addEventListener("click", () => {
+      attemptId++; // orphans the in-flight attempt
+      room?.leave();
+      backToForm();
+    });
+
+    document.getElementById("leave").addEventListener("click", () => {
+      room?.leave();
+      document.getElementById("subtitle").textContent =
+        "Enter the code from your host's screen";
+      backToForm();
+    });
+
+    document.getElementById("rejoin").addEventListener("click", () => {
+      document.getElementById("subtitle").textContent =
+        "Enter the code from your host's screen";
+      backToForm();
+    });
+
+    // Leaving the page should free our slot in the lobby.
+    window.addEventListener("pagehide", () => room?.leave());
+  </script>
+
+</body>
+</html>
